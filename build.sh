@@ -152,7 +152,9 @@ nonReleaseBuild() {
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
   MVN_ARGS+=" -Dhealth-apis-releases.nexus.user=$NEXUS_USERNAME"
   MVN_ARGS+=" -Dhealth-apis-releases.nexus.password=$NEXUS_PASSWORD"
+  set -x
   mvn $MVN_ARGS install
+  set +x
   removeSnapshotsFromCache
 }
 
