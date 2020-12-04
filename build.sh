@@ -147,6 +147,7 @@ nonReleaseBuild() {
   configureSettings
   MVN_ARGS+=" --settings $SETTINGS"
   MVN_ARGS+=" --batch-mode"
+  MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
   MVN_ARGS+=" -Dhealth-apis-releases.nexus.user=$NEXUS_USERNAME"
