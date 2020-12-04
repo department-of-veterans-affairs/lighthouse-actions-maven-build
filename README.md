@@ -22,7 +22,7 @@ See `build.sh --help` for more details.
 
 
 ## Using with CodeQL
-A GitHub workflow template is provided. See [templates/codeql.yml]. The `configure-repo.sh` tool can be used to simplify configuring your repository.
+A GitHub workflow template is provided. See [templates/codeql.yml](templates/codeql.yml). The `configure-repo.sh` tool can be used to simplify configuring your repository.
 
 1. Clone this repository
 2. Update CodeQL workflow
