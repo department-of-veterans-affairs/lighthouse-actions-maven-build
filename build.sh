@@ -13,6 +13,10 @@ Options
   The user name for the Health APIs Nexus server
 --nexus-password <password>
   The password for the Health APIs Nexus server
+--initialize-build <file>
+  The name of script to run prior to building with Maven.
+  By default, this is initialize-build.sh
+  If this file exists, it will be executed.
 
 Commands
 non-release
@@ -23,9 +27,11 @@ EOF
 exit 1
 }
 
+INITIALIZE_BUILD="initialize-build.sh"
+
 main() {
   local args
-  local longOpts="debug,nexus-username:,nexus-password:"
+  local longOpts="debug,nexus-username:,nexus-password:,initialize-build:"
   local shortOpts=""
   if ! args=$(getopt -l "$longOpts" -o "$shortOpts" -- "$@"); then usage; fi
   eval set -- "$args"
@@ -35,6 +41,7 @@ main() {
       --debug) DEBUG=true;;
       --nexus-username) NEXUS_USERNAME="$2";;
       --nexus-password) NEXUS_PASSWORD="$2";;
+      --initialize-build) INITIALIZE_BUILD="$2";;
       --) shift; break;;
     esac
     shift
@@ -141,10 +148,17 @@ removeSnapshotsFromCache() {
   done
 }
 
+runInitializeBuild() {
+  if [ ! -f "$INITIALIZE_BUILD" ]; then return; fi
+  echo "Found $INITIALIZE_BUILD"
+  $INITIALIZE_BUILD
+}
+
 nonReleaseBuild() {
   requireOpt nexus-username NEXUS_USERNAME
   requireOpt nexus-password NEXUS_PASSWORD
   configureSettings
+  runInitializeBuild
   MVN_ARGS+=" --settings $SETTINGS"
   MVN_ARGS+=" --batch-mode"
   MVN_ARGS+=" --update-snapshots"
