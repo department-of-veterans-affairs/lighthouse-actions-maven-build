@@ -105,6 +105,8 @@ writeWorkflow() {
   local templateName="$1"
   local template=$LMB_DIR/templates/$templateName
   local workflow=.github/workflows/$templateName
+  local workflowDir=$(dirname ${workflow})
+  if [ ! -d ${workflowDir} ]; then mkdir -p ${workflowDir}; fi
   cat $template | envsubst > $workflow
   echo "Updated $workflow"
 }
