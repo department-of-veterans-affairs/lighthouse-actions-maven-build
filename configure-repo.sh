@@ -12,14 +12,17 @@ Perform a Maven build suitable for automation in the Lighthouse environment.
 
 Options
 --nexus-username <user>
-  The user name for the Health APIs Nexus server
-  Environment variable: NEXUS_USERNAME
 --nexus-password <password>
-  The password for the Health APIs Nexus server
-  Environment variable: NEXUS_PASSWORD
+  The user name and password for the Health APIs Nexus server
+  Environment variables: NEXUS_USERNAME NEXUS_PASSWORD
+
+--secret-name <name>
+--secret-value <value>
+  Update this specific secret with the given value
+  Environmet variables: SECRET_NAME SECRET_VALUE
 
 Commands
-  Command may be specified with environment variables COMMAND
+  Command may be specified with environment variable COMMAND
 
 update-codeql
   Update github/workflows/codeql.yml
@@ -28,6 +31,9 @@ update-secrets --nexus-username <> --nexus-password <>
   Update the secrets for the GitHub repository (requires gh, jq, and nodejs)
   - HEALTH_APIS_RELEASES_NEXUS_USERNAME
   - HEALTH_APIS_RELEASES_NEXUS_PASSWORD
+
+update-secret --secret-name <> --secret-value <>
+  Update the secret for the GitHub repository
 
 ${1:-}
 EOF
@@ -138,7 +144,7 @@ encryptSecret() {
     npm install --silent --no-progress --save tweetsodium
     TWEETSODIUM_INSTALLED=true
   fi
-  encryptedValue=$(node $encryptJs "$KEY" "$NEXUS_USERNAME")
+  encryptedValue=$(node $encryptJs "$KEY" "$value")
   cd - > /dev/null 2>&1
   ENCRYPTED[$var]="$encryptedValue"
 }
@@ -159,7 +165,7 @@ putSecret() {
     KEY=$(jq -r .key $publicKey)
     echo "Using key $KEY_ID"
     encryptSecret $secretVariable
-    echo "Updating $secretName"
+    echo "Updating $secretName with $secretVariable"
     gh api -X PUT /repos/:owner/:repo/actions/secrets/$secretName \
       -f encrypted_value="${ENCRYPTED[${secretVariable}]}" \
       -f key_id="$KEY_ID"
