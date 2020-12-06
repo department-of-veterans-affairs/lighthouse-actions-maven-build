@@ -151,7 +151,7 @@ removeSnapshotsFromCache() {
 runInitializeBuild() {
   if [ ! -f "$INITIALIZE_BUILD" ]; then return; fi
   echo "Found $INITIALIZE_BUILD"
-  $INITIALIZE_BUILD
+  $(readlink -f $INITIALIZE_BUILD)
 }
 
 nonReleaseBuild() {
