@@ -36,7 +36,7 @@ exit 1
 
 main() {
   local args
-  local longOpts="debug,nexus-username:,nexus-password:"
+  local longOpts="debug,nexus-username:,nexus-password:,secret-name:,secret-value:"
   local shortOpts=""
   if ! args=$(getopt -l "$longOpts" -o "$shortOpts" -- "$@"); then usage; fi
   eval set -- "$args"
@@ -46,6 +46,8 @@ main() {
       --debug) DEBUG=true;;
       --nexus-username) NEXUS_USERNAME="$2";;
       --nexus-password) NEXUS_PASSWORD="$2";;
+      --secret-name) SECRET_NAME="$2";;
+      --secret-value) SECRET_VALUE="$2";;
       --) shift; break;;
     esac
     shift
@@ -57,6 +59,7 @@ main() {
   case $COMMAND in
     update-codeql) updateCodeQl;;
     update-secrets) updateSecrets;;
+    update-secret) updateSecret;;
     *) usage "unknown command: $COMMAND";;
   esac
 }
@@ -135,31 +138,47 @@ encryptSecret() {
     npm install --silent --no-progress --save tweetsodium
     TWEETSODIUM_INSTALLED=true
   fi
-  encryptedValue=$(node $encryptJs "$key" "$NEXUS_USERNAME")
+  encryptedValue=$(node $encryptJs "$KEY" "$NEXUS_USERNAME")
   cd - > /dev/null 2>&1
   ENCRYPTED[$var]="$encryptedValue"
+}
+
+
+
+putSecret() {
+  local secretName="$1"
+  local secretVariable="$2"
+  if [ -z "${KEY:-}" -o -z "${KEY_ID:-}" ]
+  then
+    requireTool gh "https://github.com/cli/cli"
+    requireTool jq "https://stedolan.github.io/jq"
+    requireTool node "https://nodejs.org"
+    local publicKey=$(mktemp key.XXXX.json) && deleteMe "$publicKey"
+    gh api /repos/:owner/:repo/actions/secrets/public-key > $publicKey
+    KEY_ID=$(jq -r .key_id $publicKey)
+    KEY=$(jq -r .key $publicKey)
+    echo "Using key $KEY_ID"
+    encryptSecret $secretVariable
+    echo "Updating $secretName"
+    gh api -X PUT /repos/:owner/:repo/actions/secrets/$secretName \
+      -f encrypted_value="${ENCRYPTED[${secretVariable}]}" \
+      -f key_id="$KEY_ID"
+  fi
 }
 
 updateSecrets() {
   requireOpt nexus-username NEXUS_USERNAME
   requireOpt nexus-password NEXUS_PASSWORD
-  requireTool gh "https://github.com/cli/cli"
-  requireTool jq "https://stedolan.github.io/jq"
-  requireTool node "https://nodejs.org"
-  local publicKey=$(mktemp key.XXXX.json) && deleteMe "$publicKey"
-  gh api /repos/:owner/:repo/actions/secrets/public-key > $publicKey
-  local keyId=$(jq -r .key_id $publicKey)
-  local key=$(jq -r .key $publicKey)
-  echo "Using key $keyId"
-  for secret in NEXUS_USERNAME NEXUS_PASSWORD
+  for secretVariable in NEXUS_USERNAME NEXUS_PASSWORD
   do
-    local secretName="HEALTH_APIS_RELEASES_$secret"
-    echo "Updating $secretName"
-    encryptSecret $secret
-    gh api -X PUT /repos/:owner/:repo/actions/secrets/$secretName \
-      -f encrypted_value="${ENCRYPTED[${secret}]}" \
-      -f key_id="$keyId"
+    putSecret "HEALTH_APIS_RELEASES_$secretVariable" "$secretVariable"
   done
+}
+
+updateSecret() {
+  requireOpt secret-name SECRET_NAME
+  requireOpt secret-value SECRET_VALUE
+  putSecret $SECRET_NAME SECRET_VALUE
 }
 
 main "$@"
