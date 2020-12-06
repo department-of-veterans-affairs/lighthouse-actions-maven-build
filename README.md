@@ -21,6 +21,14 @@ GitHub action to build Java projects for the Lighthouse program and tooling to h
 See `build.sh --help` for more details.
 
 
+## Handling special cases with `initialize-build.sh`
+
+If your project has a special need that cannot be solved through the standard Maven build, this action
+supports executing an initialization script prior to executing Maven.
+
+`initialize-build.sh` must be placed at the root of your repository.
+
+
 ## Using with CodeQL
 A GitHub workflow template is provided. See [templates/codeql.yml](templates/codeql.yml). The `configure-repo.sh` tool can be used to simplify configuring your repository.
 
