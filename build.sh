@@ -108,7 +108,7 @@ cat<<EOF
       <repositories>
         <repository>
           <id>central-evil-twin</id>
-          <url>http://repo.maven.apache.org/maven2</url>
+          <url>https://repo.maven.apache.org/maven2</url>
           <releases>
             <enabled>true</enabled>
           </releases>
@@ -120,7 +120,7 @@ cat<<EOF
       <pluginRepositories>
         <pluginRepository>
           <id>central-evil-twin</id>
-          <url>http://repo.maven.apache.org/maven2</url>
+          <url>https://repo.maven.apache.org/maven2</url>
           <releases>
             <enabled>true</enabled>
           </releases>
