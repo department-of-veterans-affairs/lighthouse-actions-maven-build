@@ -136,13 +136,26 @@ encryptSecret() {
   local value="$(eval echo \${${var}:-})"
   local encryptedValue
   if [ -z "${TMPDIR:-}" ]; then TMPDIR=$(mktemp -d) && deleteMe "$TMPDIR"; fi
-  local encrypter=$TMPDIR/configure-repo-encrypter
-  mkdir -p $encrypter
+  local encrypter=$(readlink -f $TMPDIR/configure-repo-encrypter)
+  mkdir -p $encrypter && deleteMe "$encrypter"
   cd $encrypter
-  local encryptJs=$(mktemp encrypt.XXXX.js) && deleteMe "$encryptJs"
+  local encryptJs=$(mktemp encrypt.XXXX.js)
   nodeEncryptionScript > $encryptJs
   if [ -z "${TWEETSODIUM_INSTALLED:-}" ]
   then
+    cat > package.json <<EOF
+{
+  "name": "configure-repo-encrypter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "$encryptJs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
+EOF
     npm install --silent --no-progress --save tweetsodium
     TWEETSODIUM_INSTALLED=true
   fi
@@ -166,12 +179,12 @@ putSecret() {
     KEY_ID=$(jq -r .key_id $publicKey)
     KEY=$(jq -r .key $publicKey)
     echo "Using key $KEY_ID"
-    encryptSecret $secretVariable
-    echo "Updating $secretName with $secretVariable"
-    gh api -X PUT /repos/:owner/:repo/actions/secrets/$secretName \
-      -f encrypted_value="${ENCRYPTED[${secretVariable}]}" \
-      -f key_id="$KEY_ID"
   fi
+  encryptSecret $secretVariable
+  echo "Updating $secretName with $secretVariable"
+  gh api -X PUT /repos/:owner/:repo/actions/secrets/$secretName \
+    -f encrypted_value="${ENCRYPTED[${secretVariable}]}" \
+    -f key_id="$KEY_ID"
 }
 
 updateSecrets() {
