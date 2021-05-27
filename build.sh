@@ -28,6 +28,7 @@ exit 1
 }
 
 INITIALIZE_BUILD="initialize-build.sh"
+MAX_CODE_QL_JAVA_VERSION=15
 
 main() {
   local args
@@ -154,10 +155,30 @@ runInitializeBuild() {
   $(readlink -f $INITIALIZE_BUILD)
 }
 
+isJavaVersionSupported() {
+  local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
+    -Dexec.executable='echo' \
+    -Dexec.args='${maven.compiler.target}')
+  if [ -z "${desiredVersion:-}" ]
+  then
+    echo "Cannot determine compiler target version, assuming it's supported"
+    return 0
+  fi
+
+  echo "Compiler target version is $desiredVersion, maximum Code QL version is $MAX_CODE_QL_JAVA_VERSION"
+  if [[ "${desiredVersion%%.*}" > $MAX_CODE_QL_JAVA_VERSION ]]
+  then
+    return 1
+  fi
+
+  return 0
+}
+
 nonReleaseBuild() {
   requireOpt nexus-username NEXUS_USERNAME
   requireOpt nexus-password NEXUS_PASSWORD
   configureSettings
+  if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
   runInitializeBuild
   MVN_ARGS+=" --settings $SETTINGS"
   MVN_ARGS+=" --batch-mode"
