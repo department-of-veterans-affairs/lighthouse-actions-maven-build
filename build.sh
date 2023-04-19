@@ -6,13 +6,13 @@ cat >/dev/stderr <<EOF
 $0 [options] <command>
 
 Perform a Maven build suitable for automation in the Lighthouse environment.
-Automatically configures Maven to use the Health APIs Nexus server
+Automatically configures Maven to use GitHub artifacts
 
 Options
---nexus-username <user>
-  The user name for the Health APIs Nexus server
---nexus-password <password>
-  The password for the Health APIs Nexus server
+--github-username <user>
+  The user name for GitHub
+--github-token <token>
+  The token for the GitHub user
 --initialize-build <file>
   The name of script to run prior to building with Maven.
   By default, this is initialize-build.sh
@@ -28,11 +28,10 @@ exit 1
 }
 
 INITIALIZE_BUILD="initialize-build.sh"
-MAX_CODE_QL_JAVA_VERSION=15
 
 main() {
   local args
-  local longOpts="debug,nexus-username:,nexus-password:,initialize-build:"
+  local longOpts="debug,github-username:,github-token:,initialize-build:"
   local shortOpts=""
   if ! args=$(getopt -l "$longOpts" -o "$shortOpts" -- "$@"); then usage; fi
   eval set -- "$args"
@@ -40,8 +39,8 @@ main() {
   do
     case "$1" in
       --debug) DEBUG=true;;
-      --nexus-username) NEXUS_USERNAME="$2";;
-      --nexus-password) NEXUS_PASSWORD="$2";;
+      --github-username) GITHUB_USERNAME="$2";;
+      --github-token) GITHUB_TOKEN="$2";;
       --initialize-build) INITIALIZE_BUILD="$2";;
       --) shift; break;;
     esac
@@ -76,27 +75,33 @@ cat<<EOF
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
   <servers>
    <server>
-     <id>health-apis-releases</id>
-      <username>\${health-apis-releases.nexus.user}</username>
-      <password>\${health-apis-releases.nexus.password}</password>
+     <id>github</id>
+      <username>\${github.username}</username>
+      <password>\${github.token}</password>
    </server>
  </servers>
   <profiles>
     <profile>
-      <id>gov.va.api.health</id>
+      <id>github</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
       <repositories>
         <repository>
-          <id>health-apis-releases</id>
-          <url>https://tools.health.dev-developer.va.gov/nexus/repository/health-apis-releases/</url>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/department-of-veterans-affairs/all</url>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
         </repository>
       </repositories>
       <pluginRepositories>
         <pluginRepository>
-          <id>health-apis-releases</id>
-          <url>https://tools.health.dev-developer.va.gov/nexus/repository/health-apis-releases/</url>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/department-of-veterans-affairs/all</url>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
         </pluginRepository>
       </pluginRepositories>
     </profile>
@@ -162,21 +167,13 @@ isJavaVersionSupported() {
   if [ -z "${desiredVersion:-}" ]
   then
     echo "Cannot determine compiler target version, assuming it's supported"
-    return 0
   fi
-
-  echo "Compiler target version is $desiredVersion, maximum Code QL version is $MAX_CODE_QL_JAVA_VERSION"
-  if [[ "${desiredVersion%%.*}" > $MAX_CODE_QL_JAVA_VERSION ]]
-  then
-    return 1
-  fi
-
   return 0
 }
 
 nonReleaseBuild() {
-  requireOpt nexus-username NEXUS_USERNAME
-  requireOpt nexus-password NEXUS_PASSWORD
+  requireOpt github-username GITHUB_USERNAME
+  requireOpt github-token GITHUB_TOKEN
   configureSettings
   if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
   runInitializeBuild
@@ -185,8 +182,8 @@ nonReleaseBuild() {
   MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
-  MVN_ARGS+=" -Dhealth-apis-releases.nexus.user=$NEXUS_USERNAME"
-  MVN_ARGS+=" -Dhealth-apis-releases.nexus.password=$NEXUS_PASSWORD"
+  MVN_ARGS+=" -Dgithub.username=${GITHUB_USERNAME}"
+  MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
   set -x
   mvn $MVN_ARGS install
   set +x
