@@ -37,6 +37,7 @@ init() {
 }
 
 main() {
+  init
   local args
   local longOpts="debug,github-username:,github-token:,initialize-build:"
   local shortOpts=""
@@ -181,6 +182,7 @@ isJavaVersionSupported() {
 }
 
 nonReleaseBuild() {
+  echo "Build Non-Release"
   setupBuild
   MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
@@ -191,6 +193,7 @@ nonReleaseBuild() {
 }
 
 releaseBuild() {
+  echo "Build Release"
   if [ -n "$(find -name 'Dockerfile*' -and -not -name 'Dockerfile.build')" ]
   then
     echo "Doing release builds on repos that generate docker images is not supported."
@@ -204,6 +207,7 @@ releaseBuild() {
   mvn $MVN_ARGS -U -Prelease clean deploy
   set +x
   pushReleaseVersion "${releaseVersion}"
+  pushNextSnapshot
 }
 
 nextRelease() {
@@ -223,6 +227,7 @@ pushNextSnapshot() {
   git commit -m "Next snapshot ${snapshotVersion}"
   git push --tags --force
   git push
+  echo "Pushed New Snapshot - ${snapshotVersion}"
 }
 
 pushReleaseVersion() {
