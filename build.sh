@@ -21,6 +21,8 @@ Options
 Commands
 non-release
   Perform a basic mvn install.
+release
+  Perform a mvn deploy using the release profile.
 
 ${1:-}
 EOF
@@ -28,6 +30,11 @@ exit 1
 }
 
 INITIALIZE_BUILD="initialize-build.sh"
+
+init() {
+  git config user.name libertybot
+  git config user.email "<none>"
+}
 
 main() {
   local args
@@ -47,11 +54,14 @@ main() {
     shift
   done
   if [ "${DEBUG:-}" == "true" ]; then set -x; fi
+  requireOpt github-username GITHUB_USERNAME
+  requireOpt github-token GITHUB_TOKEN
   if [ $# == 1 ]; then COMMAND="$1"; shift; fi
   if [ -z "${COMMAND:-}" ]; then usage "Command must be specified"; fi
   MVN_ARGS="$@"
   case $COMMAND in
     non-release) nonReleaseBuild;;
+    release) releaseBuild;;
     *) usage "unknown command: $COMMAND";;
   esac
 }
@@ -65,7 +75,6 @@ requireOpt() {
     usage "$name not specified, use option --$name or environment variable $var"
   fi
 }
-
 
 defaultSettings() {
 cat<<EOF
@@ -172,22 +181,73 @@ isJavaVersionSupported() {
 }
 
 nonReleaseBuild() {
-  requireOpt github-username GITHUB_USERNAME
-  requireOpt github-token GITHUB_TOKEN
-  configureSettings
-  if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
-  runInitializeBuild
-  MVN_ARGS+=" --settings $SETTINGS"
-  MVN_ARGS+=" --batch-mode"
+  setupBuild
   MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
-  MVN_ARGS+=" -Dgit.enforceBranchNames=false"
-  MVN_ARGS+=" -Dgithub.username=${GITHUB_USERNAME}"
-  MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
   set -x
   mvn $MVN_ARGS install
   set +x
   removeSnapshotsFromCache
+}
+
+releaseBuild() {
+  if [ -n "$(find -name 'Dockerfile*' -and -not -name 'Dockerfile.build')" ]
+  then
+    echo "Doing release builds on repos that generate docker images is not supported."
+    exit 1
+  fi
+  setupBuild
+  MVN_ARGS+=" -Ddocker.skip=true"
+  local releaseVersion
+  releaseVersion=$(nextRelease)
+  set -x
+  mvn $MVN_ARGS -U -Prelease clean deploy
+  set +x
+  pushReleaseVersion "${releaseVersion}"
+}
+
+nextRelease() {
+  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true
+  local releaseVersion
+  releaseVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  echo "RELEASE_VERSION=${releaseVersion}" >> $GITHUB_ENV
+  echo ${releaseVersion}
+}
+
+pushNextSnapshot() {
+  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
+  local snapshotVersion
+  snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  git diff
+  git add $(git status -s | grep "^ M" | cut -c4-)
+  git commit -m "Next snapshot ${snapshotVersion}"
+  git push --tags --force
+  git push
+}
+
+pushReleaseVersion() {
+  local releaseVersion="${1:-}"
+  if [ -z "${releaseVersion:-}" ]
+  then
+    echo "Release version could not be determined."
+    exit 1
+  fi
+  git diff
+  git add $(git status -s | grep "^ M" | cut -c4-)
+  MESSAGE="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
+  git commit -m "${MESSAGE}"
+  git tag --force -m "${MESSAGE}" ${releaseVersion}
+}
+
+setupBuild() {
+  configureSettings
+  if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
+  runInitializeBuild
+  MVN_ARGS+=" --batch-mode"
+  MVN_ARGS+=" --settings ${SETTINGS}"
+  MVN_ARGS+=" -Dgithub.username=${GITHUB_USERNAME}"
+  MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
+  MVN_ARGS+=" -Dgit.enforceBranchNames=false"
 }
 
 main "$@"
