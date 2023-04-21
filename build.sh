@@ -211,7 +211,7 @@ releaseBuild() {
 }
 
 nextRelease() {
-  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true
+  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true 1>&2
   local releaseVersion
   releaseVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
   echo "RELEASE_VERSION=${releaseVersion}" >> $GITHUB_ENV
@@ -239,14 +239,10 @@ pushReleaseVersion() {
   fi
   git diff
   git add $(git status -s | grep "^ M" | cut -c4-)
-  env | grep 'GITHUB_'
-  set -x
   local message
   message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
-  echo "${message}"
   git commit -m "${message}"
   git tag --force -m "${message}" ${releaseVersion}
-  set +x
 }
 
 setupBuild() {
