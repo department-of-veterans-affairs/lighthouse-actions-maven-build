@@ -32,12 +32,15 @@ exit 1
 INITIALIZE_BUILD="initialize-build.sh"
 
 init() {
+  if [ "${DEBUG:-}" == "true" ]; then set -x; fi
+  requireOpt github-username GITHUB_USERNAME
+  requireOpt github-token GITHUB_TOKEN
   git config user.name libertybot
   git config user.email "<none>"
+  export GH_TOKEN="${GITHUB_TOKEN}"
 }
 
 main() {
-  init
   local args
   local longOpts="debug,github-username:,github-token:,initialize-build:"
   local shortOpts=""
@@ -54,9 +57,7 @@ main() {
     esac
     shift
   done
-  if [ "${DEBUG:-}" == "true" ]; then set -x; fi
-  requireOpt github-username GITHUB_USERNAME
-  requireOpt github-token GITHUB_TOKEN
+  init
   if [ $# == 1 ]; then COMMAND="$1"; shift; fi
   if [ -z "${COMMAND:-}" ]; then usage "Command must be specified"; fi
   MVN_ARGS="$@"
@@ -182,14 +183,31 @@ EOF
 }
 
 isJavaVersionSupported() {
+  if [ -z "${JAVA_VERSION:-}" ]
+  then
+    echo "Cannot determine containers java version, assuming it's supported."
+    return 0
+  else
+    echo "Found installed java version: ${JAVA_VERSION}"
+  fi
+
   local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
     -Dexec.executable='echo' \
     -Dexec.args='${maven.compiler.target}')
   if [ -z "${desiredVersion:-}" ]
   then
-    echo "Cannot determine compiler target version, assuming it's supported"
+    echo "Cannot determine compiler target version, assuming it's supported."
+    return 0
   fi
-  echo "JAVA_VERSION=${JAVA_VERSION:-unknown}"
+
+  local javaMajorVersion=
+  javaMajorVersion=$(echo ${JAVA_VERSION} | cut -d '.' -f 1)
+  if [ "${javaMajorVersion}" != "${desiredVersion}" ]
+  then
+    echo "Container java version (${javaMajorVersion}) does not match desired java version (${desiredVersion}). Aborting build..."
+    return 1
+  fi
+
   return 0
 }
 
