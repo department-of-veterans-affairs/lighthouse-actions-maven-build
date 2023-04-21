@@ -102,6 +102,7 @@ configureSettings() {
 
 createGitHubRelease() {
   local releaseVersion="${1:-}"
+  echo "Creating Release ${releaseVersion} in GitHub"
   # ToDo determine release notes
   gh release create ${releaseVersion} \
     --verify-tag \
@@ -192,6 +193,7 @@ isJavaVersionSupported() {
   fi
 
   local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
+    ${MVN_ARGS} \
     -Dexec.executable='echo' \
     -Dexec.args='${maven.compiler.target}')
   if [ -z "${desiredVersion:-}" ]
@@ -276,13 +278,13 @@ runInitializeBuild() {
 
 setupBuild() {
   configureSettings
-  if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
-  runInitializeBuild
   MVN_ARGS+=" --batch-mode"
   MVN_ARGS+=" --settings ${SETTINGS}"
   MVN_ARGS+=" -Dgithub.username=${GITHUB_USERNAME}"
   MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
+  if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
+  runInitializeBuild
 }
 
 main "$@"
