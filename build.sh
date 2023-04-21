@@ -229,7 +229,6 @@ commitNextSnapshot() {
   local message
   message="Next snapshot ${snapshotVersion}"
   git commit -m "${message}"
-  git tag --force -m "${message}" "${snapshotVersion}"
   git tag --force -m "${message}" "big-ben"
 }
 
@@ -246,7 +245,6 @@ commitReleaseVersion() {
   message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
   git commit -m "${message}"
   git tag --force -m "${message}" ${releaseVersion}
-  git tag --force -m "${message}" "big-ben"
 }
 
 setupBuild() {
