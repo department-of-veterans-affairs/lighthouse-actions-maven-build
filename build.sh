@@ -227,7 +227,7 @@ pushNextSnapshot() {
   local message
   message="Next snapshot ${snapshotVersion}"
   git commit -m "${message}"
-  git tag --force -m "${message}" "big-ben"
+  git tag --force -m "${message}" "${snapshotVersion}"
   git push --tags --force
   git push
 }
