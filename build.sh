@@ -67,14 +67,44 @@ main() {
   esac
 }
 
-requireOpt() {
-  local name="$1"
-  local var="$2"
-  local value="$(eval echo \${${var}:-})"
-  if [ -z "${value:-}" ]
+commitNextSnapshot() {
+  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
+  local snapshotVersion
+  snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  git diff
+  git add $(git status -s | grep "^ M" | cut -c4-)
+  local message
+  message="Next snapshot ${snapshotVersion}"
+  git commit -m "${message}"
+}
+
+commitReleaseVersion() {
+  local releaseVersion="${1:-}"
+  if [ -z "${releaseVersion:-}" ]
   then
-    usage "$name not specified, use option --$name or environment variable $var"
+    echo "Release version could not be determined."
+    exit 1
   fi
+  git diff
+  git add $(git status -s | grep "^ M" | cut -c4-)
+  local message
+  message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
+  git commit -m "${message}"
+  git tag --force -m "${message}" ${releaseVersion}
+}
+
+configureSettings() {
+  SETTINGS=$(mktemp settings.xml.XXXX)
+  trap "rm $SETTINGS" EXIT
+  defaultSettings>$SETTINGS
+}
+
+createGitHubRelease() {
+  local releaseVersion="${1:-}"
+  # ToDo determine release notes
+  gh release create ${releaseVersion} \
+    --verify-tag \
+    --title "Release ${releaseVersion}"
 }
 
 defaultSettings() {
@@ -151,25 +181,6 @@ cat<<EOF
 EOF
 }
 
-configureSettings() {
-  SETTINGS=$(mktemp settings.xml.XXXX)
-  trap "rm $SETTINGS" EXIT
-  defaultSettings>$SETTINGS
-}
-
-removeSnapshotsFromCache() {
-  for f in $(find ~/.m2/repository/ -type d -name "*-SNAPSHOT")
-  do
-    rm -rf $f || true
-  done
-}
-
-runInitializeBuild() {
-  if [ ! -f "$INITIALIZE_BUILD" ]; then return; fi
-  echo "Found $INITIALIZE_BUILD"
-  $(readlink -f $INITIALIZE_BUILD)
-}
-
 isJavaVersionSupported() {
   local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
     -Dexec.executable='echo' \
@@ -178,7 +189,16 @@ isJavaVersionSupported() {
   then
     echo "Cannot determine compiler target version, assuming it's supported"
   fi
+  echo "JAVA_VERSION=${JAVA_VERSION:-unknown}"
   return 0
+}
+
+nextRelease() {
+  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true 1>&2
+  local releaseVersion
+  releaseVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  echo "RELEASE_VERSION=${releaseVersion}" >> $GITHUB_ENV
+  echo ${releaseVersion}
 }
 
 nonReleaseBuild() {
@@ -210,40 +230,30 @@ releaseBuild() {
   commitNextSnapshot
   git push --tags --force
   git push
+  createGitHubRelease "${releaseVersion}"
 }
 
-nextRelease() {
-  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true 1>&2
-  local releaseVersion
-  releaseVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
-  echo "RELEASE_VERSION=${releaseVersion}" >> $GITHUB_ENV
-  echo ${releaseVersion}
+removeSnapshotsFromCache() {
+  for f in $(find ~/.m2/repository/ -type d -name "*-SNAPSHOT")
+  do
+    rm -rf $f || true
+  done
 }
 
-commitNextSnapshot() {
-  mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
-  local snapshotVersion
-  snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
-  git diff
-  git add $(git status -s | grep "^ M" | cut -c4-)
-  local message
-  message="Next snapshot ${snapshotVersion}"
-  git commit -m "${message}"
-}
-
-commitReleaseVersion() {
-  local releaseVersion="${1:-}"
-  if [ -z "${releaseVersion:-}" ]
+requireOpt() {
+  local name="$1"
+  local var="$2"
+  local value="$(eval echo \${${var}:-})"
+  if [ -z "${value:-}" ]
   then
-    echo "Release version could not be determined."
-    exit 1
+    usage "$name not specified, use option --$name or environment variable $var"
   fi
-  git diff
-  git add $(git status -s | grep "^ M" | cut -c4-)
-  local message
-  message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
-  git commit -m "${message}"
-  git tag --force -m "${message}" ${releaseVersion}
+}
+
+runInitializeBuild() {
+  if [ ! -f "$INITIALIZE_BUILD" ]; then return; fi
+  echo "Found $INITIALIZE_BUILD"
+  bash -c $(readlink -f $INITIALIZE_BUILD)
 }
 
 setupBuild() {
