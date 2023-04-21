@@ -206,8 +206,10 @@ releaseBuild() {
   set -x
   mvn $MVN_ARGS -U -Prelease clean deploy
   set +x
-  pushReleaseVersion "${releaseVersion}"
-  pushNextSnapshot
+  commitReleaseVersion "${releaseVersion}"
+  commitNextSnapshot
+  git push --tags --force
+  git push
 }
 
 nextRelease() {
@@ -218,19 +220,19 @@ nextRelease() {
   echo ${releaseVersion}
 }
 
-pushNextSnapshot() {
+commitNextSnapshot() {
   mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
   local snapshotVersion
   snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
   git diff
   git add $(git status -s | grep "^ M" | cut -c4-)
-  git commit -m "Next snapshot ${snapshotVersion}"
-  git push --tags --force
-  git push
-  echo "Pushed New Snapshot - ${snapshotVersion}"
+  local message
+  message="Next snapshot ${snapshotVersion}"
+  git commit -m "${message}"
+  git tag --force -m "${message}" "big-ben"
 }
 
-pushReleaseVersion() {
+commitReleaseVersion() {
   local releaseVersion="${1:-}"
   if [ -z "${releaseVersion:-}" ]
   then
@@ -243,6 +245,7 @@ pushReleaseVersion() {
   message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
   git commit -m "${message}"
   git tag --force -m "${message}" ${releaseVersion}
+  git tag --force -m "${message}" "big-ben"
 }
 
 setupBuild() {
