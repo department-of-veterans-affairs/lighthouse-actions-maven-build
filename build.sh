@@ -239,9 +239,11 @@ pushReleaseVersion() {
   fi
   git diff
   git add $(git status -s | grep "^ M" | cut -c4-)
+  env | grep 'GITHUB_'
   set -x
   local message
   message="Release ${releaseVersion} - GitHub Workflow: ${GITHUB_WORKFLOW} ${GITHUB_RUN_ID}"
+  echo "${message}"
   git commit -m "${message}"
   git tag --force -m "${message}" ${releaseVersion}
   set +x
