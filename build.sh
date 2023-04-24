@@ -37,7 +37,7 @@ init() {
   requireOpt github-token GITHUB_TOKEN
   git config user.name libertybot
   git config user.email "<none>"
-  export GH_TOKEN="${GITHUB_TOKEN}"
+  : "${GH_TOKEN:=GITHUB_TOKEN}"
 }
 
 main() {
@@ -234,13 +234,7 @@ nonReleaseBuild() {
 
 releaseBuild() {
   echo "Build Release"
-  if [ -n "$(find -name 'Dockerfile*' -and -not -name 'Dockerfile.build')" ]
-  then
-    echo "Doing release builds on repos that generate docker images is not supported."
-    exit 1
-  fi
   setupBuild
-  MVN_ARGS+=" -Ddocker.skip=true"
   local releaseVersion
   releaseVersion=$(nextRelease)
   set -x
