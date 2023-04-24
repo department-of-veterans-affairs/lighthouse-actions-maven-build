@@ -6,6 +6,7 @@ on:
         type: string
         required: false
         default: '17'
+    secrets:
       github-username:
         type: string
         required: true
@@ -24,7 +25,7 @@ jobs:
         with:
           # The standard GITHUB_ACTOR cannot push back to a protected branch.
           # We must checkout with a god-mode user.
-          token: ${{ inputs.github-token }}
+          token: ${{ secrets.github-token }}
       - name: Setup Java
         id: setup_java
         uses: actions/setup-java@v3
@@ -37,8 +38,8 @@ jobs:
         env:
           JAVA_VERSION: ${{ steps.setup_java.outputs.version }}
         with:
-          github-username: ${{ inputs.github-username }}
-          github-token: ${{ inputs.github-token }}
+          github-username: ${{ secrets.github-username }}
+          github-token: ${{ secrets.github-token }}
           command: release
 
   snyk:
