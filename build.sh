@@ -37,7 +37,7 @@ init() {
   requireOpt github-token GITHUB_TOKEN
   git config user.name libertybot
   git config user.email "<none>"
-  export GH_TOKEN="${GH_TOKEN:-GITHUB_TOKEN}"
+  export GH_TOKEN="${GITHUB_TOKEN}"
 }
 
 main() {
