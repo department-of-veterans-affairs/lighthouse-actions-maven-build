@@ -6,10 +6,6 @@ on:
         type: string
         required: false
         default: '17'
-      secrel-snyk-config:
-        type: string
-        required: false
-        default: '.github/secrel/maven-config.yml'
     secrets:
       github-username:
         required: true
@@ -35,11 +31,3 @@ jobs:
           github-username: ${{ secrets.github-username }}
           github-token: ${{ secrets.github-token }}
           command: non-release
-
-  snyk:
-    name: Run Snyk Scan
-    uses: department-of-veterans-affairs/lighthouse-tornado-secrel-pipeline/.github/workflows/snyk.yml@v4.2.0
-    needs: [ lighthouse-maven ]
-    with:
-      config-file: ${{ inputs.secrel-snyk-config }}
-    secrets: inherit

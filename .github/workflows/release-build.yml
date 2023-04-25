@@ -39,11 +39,3 @@ jobs:
           github-username: ${{ secrets.github-username }}
           github-token: ${{ secrets.github-token }}
           command: release
-
-  snyk:
-    name: Run Snyk Scan
-    uses: department-of-veterans-affairs/lighthouse-tornado-secrel-pipeline/.github/workflows/snyk.yml@v4.2.0
-    needs: [ lighthouse-maven ]
-    with:
-      config-file: .github/secrel/maven-config.yml
-    secrets: inherit
