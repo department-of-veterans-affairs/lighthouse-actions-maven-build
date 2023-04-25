@@ -1,4 +1,4 @@
-name: Lighthouse APIs Maven Release Build
+name: Lighthouse APIs Maven Non-Release Build
 on:
   workflow_call:
     inputs:
@@ -16,16 +16,10 @@ jobs:
   lighthouse-maven:
     name: Lighthouse Maven Build
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'Next snapshot')"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          # The standard GITHUB_ACTOR cannot push back to a protected branch.
-          # We must checkout with a god-mode user.
-          token: ${{ secrets.github-token }}
       - name: Setup Java
-        id: setup_java
         uses: actions/setup-java@v3
         with:
           java-version: ${{ inputs.java-version }}
@@ -33,12 +27,10 @@ jobs:
           cache: 'maven'
       - name: Lighthouse maven build
         uses: department-of-veterans-affairs/lighthouse-actions-maven-build@master
-        env:
-          JAVA_VERSION: ${{ steps.setup_java.outputs.version }}
         with:
           github-username: ${{ secrets.github-username }}
           github-token: ${{ secrets.github-token }}
-          command: release
+          command: non-release
 
   snyk:
     name: Run Snyk Scan
