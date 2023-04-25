@@ -6,6 +6,10 @@ on:
         type: string
         required: false
         default: '17'
+      secrel-snyk-config:
+        type: string
+        required: false
+        default: '.github/secrel/maven-config.yml'
     secrets:
       github-username:
         required: true
@@ -37,5 +41,5 @@ jobs:
     uses: department-of-veterans-affairs/lighthouse-tornado-secrel-pipeline/.github/workflows/snyk.yml@v4.2.0
     needs: [ lighthouse-maven ]
     with:
-      config-file: .github/secrel/maven-config.yml
+      config-file: ${{ inputs.secrel-snyk-config }}
     secrets: inherit
