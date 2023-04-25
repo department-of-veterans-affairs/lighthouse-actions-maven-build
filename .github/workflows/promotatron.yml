@@ -5,12 +5,12 @@ on:
       promoter:
         type: string
         required: true
+    secrets:
       jenkins-username:
-        type: string
         required: true
       jenkins-password:
-        type: string
         required: true
+
 
 jobs:
   jenkins-promotatron:
@@ -26,7 +26,7 @@ jobs:
           requestBuild() {
             curl --silent \
               --request POST \
-              --user "${{ inputs.jenkins-username }}:${{ inputs.jenkins-password }}" \
+              --user "${{ secrets.jenkins-username }}:${{ secrets.jenkins-password }}" \
               --output ${RESPONSE_PAYLOAD} \
               --write-out '%{http_code}' \
               --data-urlencode json="${REQUEST_PAYLOAD}" \
