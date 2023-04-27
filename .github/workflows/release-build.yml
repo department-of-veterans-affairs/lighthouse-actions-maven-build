@@ -3,9 +3,15 @@ on:
   workflow_call:
     inputs:
       java-version:
+        description: 'The java version to build with.'
         type: string
         required: false
         default: '17'
+      image-filter:
+        description: 'An extended regex expression that will be used to filter images from docker-images output value.'
+        type: string
+        required: false
+        default: 'test'
     secrets:
       github-username:
         required: true
@@ -57,14 +63,24 @@ jobs:
           command: release
       - name: Set outputs
         id: set_outputs
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          IMAGE_FILTER: ${{ inputs.image-filter }}
         run: |
           set -x
           echo "release-version=${RELEASE_VERSION:=unknown}" | tee --append ${GITHUB_OUTPUT}
-          echo "docker-images<<EOF" >> ${GITHUB_OUTPUT}
+          DOCKER_IMAGES=$(mktemp)
+          # All docker images
+          echo "${GITHUB_REPO} built the following release images: "
           docker images \
             --filter reference="ghcr.io/${GITHUB_REPO}*:${RELEASE_VERSION}*" \
             --format '{{.Repository}}:{{.Tag}}' \
-          | grep -v 'test' \
+          | tee --append ${DOCKER_IMAGES}
+          # Filer out test images
+          echo "Filtering out images matching the pattern '${IMAGE_FILTER}'."
+          echo "docker-images<<EOF" >> ${GITHUB_OUTPUT}
+          cat ${DOCKER_IMAGES} \
+          | grep --invert-match --extended-regexp "${IMAGE_FILTER}" \
           | tee --append ${GITHUB_OUTPUT}
           echo "EOF" >> ${GITHUB_OUTPUT}
           set +x
