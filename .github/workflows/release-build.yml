@@ -12,8 +12,12 @@ on:
       github-token:
         required: true
     outputs:
-      release-version: ${{ jobs.lighthouse-maven.outputs.release-version }}
-      docker-images: ${{ jobs.lighthouse-maven.outputs.docker-images }}
+      release-version:
+        description: "The applications release version for the current build."
+        value: ${{ jobs.lighthouse-maven.outputs.release-version }}
+      docker-images:
+        description: "A new line separated list of (non-test) docker images that were built by the job."
+        value: ${{ jobs.lighthouse-maven.outputs.docker-images }}
 
 jobs:
   lighthouse-maven:
