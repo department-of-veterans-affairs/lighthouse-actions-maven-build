@@ -7,9 +7,9 @@ on:
         required: false
         default: '17'
     secrets:
-      github-username:
+      BUILD_GITHUB_USERNAME:
         required: true
-      github-token:
+      BUILD_GITHUB_TOKEN:
         required: true
 
 jobs:
@@ -28,6 +28,6 @@ jobs:
       - name: Lighthouse maven build
         uses: department-of-veterans-affairs/lighthouse-actions-maven-build@master
         with:
-          github-username: ${{ secrets.github-username }}
-          github-token: ${{ secrets.github-token }}
+          github-username: ${{ secrets.BUILD_GITHUB_USERNAME }}
+          github-token: ${{ secrets.BUILD_GITHUB_TOKEN }}
           command: non-release
