@@ -6,9 +6,9 @@ on:
         type: string
         required: true
     secrets:
-      jenkins-username:
+      DVP_JENKINS_USERNAME:
         required: true
-      jenkins-password:
+      DVP_JENKINS_TOKEN:
         required: true
 
 
@@ -26,7 +26,7 @@ jobs:
           requestBuild() {
             curl --silent \
               --request POST \
-              --user "${{ secrets.jenkins-username }}:${{ secrets.jenkins-password }}" \
+              --user "${{ secrets.DVP_JENKINS_USERNAME }}:${{ secrets.DVP_JENKINS_TOKEN }}" \
               --output ${RESPONSE_PAYLOAD} \
               --write-out '%{http_code}' \
               --data-urlencode json="${REQUEST_PAYLOAD}" \
