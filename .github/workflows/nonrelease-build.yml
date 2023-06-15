@@ -6,6 +6,11 @@ on:
         type: string
         required: false
         default: '17'
+      maven-cache:
+        description: 'The name of the maven cache that can be reloaded later.'
+        type: string
+        required: false
+        default: ${{ github.repository }}-maven-cache
     secrets:
       BUILD_GITHUB_USERNAME:
         required: true
@@ -24,10 +29,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'corretto'
-          cache: 'maven'
       - name: Lighthouse maven build
         uses: department-of-veterans-affairs/lighthouse-actions-maven-build@master
         with:
           github-username: ${{ secrets.BUILD_GITHUB_USERNAME }}
           github-token: ${{ secrets.BUILD_GITHUB_TOKEN }}
           command: non-release
+      - name: Cache local Maven repository
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ inputs.maven-cache }}
