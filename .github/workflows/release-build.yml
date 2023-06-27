@@ -11,7 +11,6 @@ on:
         description: 'An extended regex expression that will be used to filter images from docker-images output value.'
         type: string
         required: false
-        default: 'test'
       maven-cache:
         description: 'The name of the maven cache that can be reloaded later.'
         type: string
@@ -76,20 +75,24 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           IMAGE_FILTER: ${{ inputs.image-filter }}
         run: |
-          set -x
           echo "release-version=${RELEASE_VERSION:=unknown}" | tee --append ${GITHUB_OUTPUT}
           DOCKER_IMAGES=$(mktemp)
           # All docker images
           echo "${GITHUB_REPO} built the following release images: "
+          # SecRel expects the following format
           docker images \
-            --filter reference="ghcr.io/${GITHUB_REPO}*:${RELEASE_VERSION}*" \
+            --filter reference="ghcr.io/${GITHUB_REPO}/*:${RELEASE_VERSION}*" \
             --format '{{.Repository}}:{{.Tag}}' \
           | tee --append ${DOCKER_IMAGES}
           # Filer out test images
-          echo "Filtering out images matching the pattern '${IMAGE_FILTER}'."
           echo "docker-images<<EOF" >> ${GITHUB_OUTPUT}
-          cat ${DOCKER_IMAGES} \
-          | grep --invert-match --extended-regexp "${IMAGE_FILTER}" \
-          | tee --append ${GITHUB_OUTPUT}
+          if [ -n "${IMAGE_FILTER:-}" ]
+          then
+            echo "Filtering out images matching the pattern '${IMAGE_FILTER}'."
+            cat ${DOCKER_IMAGES} \
+              | grep --invert-match --extended-regexp "${IMAGE_FILTER}" \
+              | tee --append ${GITHUB_OUTPUT}
+          else
+            cat ${DOCKER_IMAGES} | tee --append ${GITHUB_OUTPUT}
+          fi
           echo "EOF" >> ${GITHUB_OUTPUT}
-          set +x
