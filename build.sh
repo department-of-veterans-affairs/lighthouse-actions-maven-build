@@ -83,7 +83,7 @@ commitReleaseVersion() {
   local releaseVersion="${1:-}"
   if [ -z "${releaseVersion:-}" ]
   then
-    echo "Release version could not be determined."
+    log "Release version could not be determined." "ERROR"
     exit 1
   fi
   git diff
@@ -102,7 +102,7 @@ configureSettings() {
 
 createGitHubRelease() {
   local releaseVersion="${1:-}"
-  echo "Creating Release ${releaseVersion} in GitHub"
+  log "Creating Release ${releaseVersion} in GitHub"
   # ToDo determine release notes
   gh release create ${releaseVersion} \
     --verify-tag \
@@ -186,10 +186,10 @@ EOF
 isJavaVersionSupported() {
   if [ -z "${JAVA_VERSION:-}" ]
   then
-    echo "Cannot determine containers java version, assuming it's supported."
+    log "Cannot determine containers java version, assuming it's supported." "WARN"
     return 0
   else
-    echo "Found installed java version: ${JAVA_VERSION}"
+    log "Found installed java version: ${JAVA_VERSION}"
   fi
 
   local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
@@ -198,7 +198,7 @@ isJavaVersionSupported() {
     -Dexec.args='${maven.compiler.target}')
   if [ -z "${desiredVersion:-}" ]
   then
-    echo "Cannot determine compiler target version, assuming it's supported."
+    log "Cannot determine compiler target version, assuming it's supported." "WARN"
     return 0
   fi
 
@@ -206,11 +206,17 @@ isJavaVersionSupported() {
   javaMajorVersion=$(echo ${JAVA_VERSION} | cut -d '.' -f 1)
   if [ "${javaMajorVersion}" != "${desiredVersion}" ]
   then
-    echo "Container java version (${javaMajorVersion}) does not match desired java version (${desiredVersion}). Aborting build..."
+    log "Container java version (${javaMajorVersion}) does not match desired java version (${desiredVersion}). Aborting build..." "ERROR"
     return 1
   fi
 
   return 0
+}
+
+log() {
+  local message="${1}"
+  local logLevel="${2:-INFO}"
+  echo "[${logLevel}] ${message}"
 }
 
 nextRelease() {
@@ -222,7 +228,7 @@ nextRelease() {
 }
 
 nonReleaseBuild() {
-  echo "Build Non-Release"
+  log "Building in NON_RELEASE mode."
   setupBuild
   MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
@@ -233,10 +239,11 @@ nonReleaseBuild() {
 }
 
 releaseBuild() {
-  echo "Build Release"
+  log "Building in RELEASE mode."
   setupBuild
   local releaseVersion
   releaseVersion=$(nextRelease)
+  log "Building release version: ${releaseVersion}"
   set -x
   mvn $MVN_ARGS -U -Prelease clean deploy
   set +x
@@ -266,11 +273,12 @@ requireOpt() {
 
 runInitializeBuild() {
   if [ ! -f "$INITIALIZE_BUILD" ]; then return; fi
-  echo "Found $INITIALIZE_BUILD"
+  log "Found $INITIALIZE_BUILD"
   bash -c $(readlink -f $INITIALIZE_BUILD)
 }
 
 setupBuild() {
+  git remote --verbose
   configureSettings
   MVN_ARGS+=" --batch-mode"
   MVN_ARGS+=" --settings ${SETTINGS}"
@@ -278,6 +286,7 @@ setupBuild() {
   MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
   if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
+  mvn --version
   runInitializeBuild
 }
 
