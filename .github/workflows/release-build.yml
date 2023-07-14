@@ -15,7 +15,7 @@ on:
         description: 'The name of the maven cache that can be reloaded later.'
         type: string
         required: false
-        default: ${{ github.repository }}-maven-cache
+        default: mvn_cache
     secrets:
       BUILD_GITHUB_USERNAME:
         required: true
