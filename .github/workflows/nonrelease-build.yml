@@ -6,11 +6,6 @@ on:
         type: string
         required: false
         default: '17'
-      maven-cache:
-        description: 'The name of the maven cache that can be reloaded later.'
-        type: string
-        required: false
-        default: mvn_cache
     secrets:
       BUILD_GITHUB_USERNAME:
         required: true
@@ -39,4 +34,4 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository
-          key: ${{ inputs.maven-cache }}
+          key: maven-${{ hashFiles('**/pom.xml') }}
