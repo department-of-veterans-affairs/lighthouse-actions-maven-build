@@ -11,11 +11,6 @@ on:
         description: 'An extended regex expression that will be used to filter images from docker-images output value.'
         type: string
         required: false
-      maven-cache:
-        description: 'The name of the maven cache that can be reloaded later.'
-        type: string
-        required: false
-        default: mvn_cache
     secrets:
       BUILD_GITHUB_USERNAME:
         required: true
@@ -68,7 +63,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository
-          key: ${{ inputs.maven-cache }}
+          key: maven-${{ hashFiles('**/pom.xml') }}
       - name: Set outputs
         id: set_outputs
         env:
