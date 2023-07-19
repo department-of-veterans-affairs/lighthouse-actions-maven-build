@@ -244,7 +244,7 @@ releaseBuild() {
   removeSnapshotsFromCache
   # Snyk builds things using the directory structure not maven
   # To allow snyk scanning to complete in SecRel, we need to make sure the snapshots get cached
-  log "Building SNAPSHOT version for Snyk."
+  log "Building old SNAPSHOT version for Snyk."
   mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests
   local releaseVersion
   releaseVersion=$(nextRelease)
@@ -257,6 +257,8 @@ releaseBuild() {
   git push --tags --force
   git push
   createGitHubRelease "${releaseVersion}"
+  log "Building new SNAPSHOT version for Snyk."
+  mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests
 }
 
 removeSnapshotsFromCache() {
