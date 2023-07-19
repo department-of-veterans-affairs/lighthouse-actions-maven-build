@@ -256,8 +256,7 @@ releaseBuild() {
   # Snyk builds things using the directory structure not maven
   # To allow snyk scanning to complete in SecRel, we need to make sure the snapshots get cached
   log "Building next SNAPSHOT version."
-  local debugLog=$(mktemp)
-  if ! mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests &> ${debugLog}; then cat ${debugLog}; exit 1; fi
+  mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests
 }
 
 removeSnapshotsFromCache() {
