@@ -257,8 +257,6 @@ releaseBuild() {
   git push --tags --force
   git push
   createGitHubRelease "${releaseVersion}"
-  log "Building new SNAPSHOT version for Snyk."
-  mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests
 }
 
 removeSnapshotsFromCache() {
