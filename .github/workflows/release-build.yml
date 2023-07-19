@@ -39,6 +39,9 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.BUILD_GITHUB_USERNAME }}
           password: ${{ secrets.BUILD_GITHUB_TOKEN }}
+      - name: Decide cache name
+        run: |
+          echo "MAVEN_CACHE_NAME=maven-${{ hashFiles('**/pom.xml') }}" | tee --append ${GITHUB_ENV}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -63,7 +66,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository
-          key: maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ env.MAVEN_CACHE_NAME }}
       - name: Set outputs
         id: set_outputs
         env:
