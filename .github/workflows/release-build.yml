@@ -40,8 +40,10 @@ jobs:
           username: ${{ secrets.BUILD_GITHUB_USERNAME }}
           password: ${{ secrets.BUILD_GITHUB_TOKEN }}
       - name: Decide cache name
+        env:
+          MAVEN_CACHE_NAME: maven-${{ hashFiles('**/pom.xml') }}
         run: |
-          echo "MAVEN_CACHE_NAME=maven-${{ hashFiles('**/pom.xml') }}" | tee --append ${GITHUB_ENV}
+          echo "MAVEN_CACHE_NAME=${MAVEN_CACHE_NAME}" | tee --append ${GITHUB_ENV}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
