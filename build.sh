@@ -246,7 +246,7 @@ releaseBuild() {
   # To allow snyk scanning to complete in SecRel, we need to make sure the snapshots get cached
   log "Building SNAPSHOT version."
   local debugLog=$(mktemp)
-  if ! mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests; then cat ${debugLog}; exit 1; fi
+  if ! mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests &> ${debugLog}; then cat ${debugLog}; exit 1; fi
   local releaseVersion
   releaseVersion=$(nextRelease)
   log "Building release version: ${releaseVersion}"
