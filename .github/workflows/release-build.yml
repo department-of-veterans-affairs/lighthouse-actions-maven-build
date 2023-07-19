@@ -39,17 +39,17 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.BUILD_GITHUB_USERNAME }}
           password: ${{ secrets.BUILD_GITHUB_TOKEN }}
-      - name: Decide cache name
-        env:
-          MAVEN_CACHE_NAME: maven-${{ hashFiles('**/pom.xml') }}
-        run: |
-          echo "MAVEN_CACHE_NAME=${MAVEN_CACHE_NAME}" | tee --append ${GITHUB_ENV}
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           # The standard GITHUB_ACTOR cannot push back to a protected branch.
           # We must checkout with a god-mode user.
           token: ${{ secrets.BUILD_GITHUB_TOKEN }}
+      - name: Decide cache name
+        env:
+          MAVEN_CACHE_NAME: maven-${{ hashFiles('**/pom.xml') }}
+        run: |
+          echo "MAVEN_CACHE_NAME=${MAVEN_CACHE_NAME}" | tee --append ${GITHUB_ENV}
       - name: Setup Java
         id: setup_java
         uses: actions/setup-java@v3
