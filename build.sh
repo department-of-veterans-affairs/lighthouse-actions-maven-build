@@ -32,7 +32,7 @@ exit 1
 INITIALIZE_BUILD="initialize-build.sh"
 
 init() {
-  if [ "${DEBUG:-}" == "true" ]; then set -x; fi
+  if [ "${DEBUG:=false}" == "true" ]; then set -x; fi
   requireOpt github-username GITHUB_USERNAME
   requireOpt github-token GITHUB_TOKEN
   git config user.name libertybot
@@ -230,17 +230,23 @@ nextRelease() {
 nonReleaseBuild() {
   log "Building in NON_RELEASE mode."
   setupBuild
+  removeSnapshotsFromCache
   MVN_ARGS+=" --update-snapshots"
   MVN_ARGS+=" -Ddocker.skip=true"
   set -x
   mvn $MVN_ARGS install
   set +x
-  #removeSnapshotsFromCache
 }
 
 releaseBuild() {
   log "Building in RELEASE mode."
   setupBuild
+  removeSnapshotsFromCache
+  # Snyk builds things using the directory structure not maven
+  # To allow snyk scanning to complete in SecRel, we need to make sure the snapshots get cached
+  log "Building SNAPSHOT version."
+  local debugLog=$(mktemp)
+  if ! mvn ${MVN_ARGS} clean install -P"!standard" -DskipTests; then cat ${debugLog}; exit 1; fi
   local releaseVersion
   releaseVersion=$(nextRelease)
   log "Building release version: ${releaseVersion}"
@@ -255,6 +261,7 @@ releaseBuild() {
 }
 
 removeSnapshotsFromCache() {
+  log "Removing old SNAPSHOT versions."
   for f in $(find ~/.m2/repository/ -type d -name "*-SNAPSHOT")
   do
     rm -rf $f || true
