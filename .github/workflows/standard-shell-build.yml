@@ -101,6 +101,8 @@ jobs:
           IMAGE_FILTER: ${{ inputs.image-filter }}
         run: |
           DOCKER_IMAGES=$(mktemp)
+          docker images
+          echo "REPO: ${GITHUB_REPOSITORY}"
           docker images \
           --filter reference="ghcr.io/${GITHUB_REPOSITORY}/*:${RELEASE_VERSION}*" \
           --format '{{.Repository}}:{{.Tag}}' \
