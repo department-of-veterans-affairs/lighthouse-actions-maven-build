@@ -101,12 +101,12 @@ jobs:
           IMAGE_FILTER: ${{ inputs.image-filter }}
         run: |
           DOCKER_IMAGES=$(mktemp)
-          docker images
-          echo "REPO: ${GITHUB_REPOSITORY}"
+          echo "Found the following built docker images:"
           docker images \
           --filter reference="ghcr.io/${GITHUB_REPOSITORY}/*:${RELEASE_VERSION}*" \
           --format '{{.Repository}}:{{.Tag}}' \
           | tee --append ${DOCKER_IMAGES}
+          echo "Setting docker-images output:"
           echo "docker-images<<EOF" >> ${GITHUB_OUTPUT}
           if [ -n "${IMAGE_FILTER:-}" ]
           then
