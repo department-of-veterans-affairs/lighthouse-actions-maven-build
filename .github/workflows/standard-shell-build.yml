@@ -120,7 +120,7 @@ jobs:
           echo "EOF" >> ${GITHUB_OUTPUT}
       - name: Perform Release Actions
         id: release_actions
-        if: ${{ inputs.release == 'true' }}
+        if: ${{ env.RELEASE == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
         run: |
