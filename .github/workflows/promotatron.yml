@@ -4,17 +4,26 @@ on:
     inputs:
       promoter:
         type: string
-        required: true
+        required: false
+      argocd-application-name:
+        type: string
+        required: false
+      argocd-team-name:
+        type: string
+        required: false
     secrets:
+      BUILD_GITHUB_TOKEN:
+        required: false
       DVP_JENKINS_USERNAME:
-        required: true
+        required: false
       DVP_JENKINS_TOKEN:
-        required: true
+        required: false
 
 
 jobs:
   jenkins-promotatron:
     runs-on: ubuntu-latest
+    if: ${{ inputs.promoter != '' }}
     steps:
       - name: Kick Jenkins Promotion Job
         run: |
@@ -50,3 +59,18 @@ jobs:
           fi
           echo "Promotion requested."
           echo "See ${JENKINS_URL}/${PROMOTATRON_JOB_PATH}"
+  argocd-promotion:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.argocd-application-name != '' && inputs.argocd-team-name != '' }}
+    steps:
+      - name: Upgrade application version in dev
+        env:
+          APPLICATION_NAME: ${{ inputs.argocd-application-name }}
+          ARGOCD_TEAM: ${{ inputs.argocd-team-name }}
+          GH_TOKEN: ${{ secrets.BUILD_GITHUB_TOKEN }}
+        run: |
+         gh workflow run \
+           --repo department-of-veterans-affairs/${ARGOCD_TEAM}-argocd-applications-vault \
+           "Promote Application" \
+           --field application="${APPLICATION_NAME}" \
+           --field environment="dev"
