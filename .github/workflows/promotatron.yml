@@ -23,7 +23,7 @@ on:
 jobs:
   jenkins-promotatron:
     runs-on: ubuntu-latest
-    if: ${{ inputs.promoter != '' && secrets.DVP_JENKINS_USERNAME != '' && secrets.DVP_JENKINS_TOKEN != '' }}
+    if: ${{ inputs.promoter != '' }}
     steps:
       - name: Kick Jenkins Promotion Job
         run: |
@@ -61,7 +61,7 @@ jobs:
           echo "See ${JENKINS_URL}/${PROMOTATRON_JOB_PATH}"
   argocd-promotion:
     runs-on: ubuntu-latest
-    if: ${{ inputs.argocd-application-name != '' && inputs.argocd-team-name != '' && secrets.BUILD_GITHUB_TOKEN != '' }}
+    if: ${{ inputs.argocd-application-name != '' && inputs.argocd-team-name != '' }}
     steps:
       - name: Upgrade application version in dev
         env:
