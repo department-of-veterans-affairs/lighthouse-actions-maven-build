@@ -37,7 +37,7 @@ init() {
   requireOpt github-token GITHUB_TOKEN
   git config user.name libertybot
   git config user.email "<none>"
-  git pull
+  git remote --verbose
   export GH_TOKEN="${GITHUB_TOKEN}"
 }
 
@@ -255,6 +255,8 @@ releaseBuild() {
   set +x
   commitReleaseVersion "${releaseVersion}"
   commitNextSnapshot
+  # Merge main in case a new commit was made
+  git pull --no-edit
   git push --tags --force
   git push
   createGitHubRelease "${releaseVersion}"
