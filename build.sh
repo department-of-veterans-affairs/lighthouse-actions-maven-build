@@ -253,7 +253,7 @@ EOF
   if [ "${pullResult}" != "already-up-to-date." ]
   then
     local mergeMessage
-    mergeMessage=$(git log -1 --format="%s")
+    mergeMessage=$(git log -3 --no-merges --format="%s" | tail -n -1)
     git commit --amend -m "REBUILD REQUIRED: ${mergeMessage}" -m "${pullResult}"
   fi
 }
