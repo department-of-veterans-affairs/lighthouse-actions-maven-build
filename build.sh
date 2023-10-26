@@ -78,6 +78,8 @@ commitNextSnapshot() {
   local message
   message="Next snapshot ${snapshotVersion}"
   git commit -m "${message}"
+  # Need this for the failed merge message
+  export NEXT_VERSION=${snapshotVersion:-unknown}
 }
 
 commitReleaseVersion() {
@@ -220,6 +222,42 @@ log() {
   echo "[${logLevel}] ${message}"
 }
 
+mergeMainBranch() {
+  local pullResult
+  set +e
+  pullResult=$(git pull --no-edit --no-ff --no-tags)
+  if [ $? != 0 ]
+  then
+    cat <<EOF
++----------------------------------------------------------+
+|                       OH NOES!                           |
++----------------------------------------------------------+
+|                                                          |
+|  CHANGES HAVE BEEN MADE SINCE THIS BUILD STARTED THAT    |
+|  CANNOT BE AUTOMATICALLY MERGED.                         |
+|                                                          |
+|  WE CANNOT PUSH TAGS OR CHANGES TO GITHUB. IF AN         |
+|  ARTIFACT WAS DEPLOYED TO AN ARTIFACT SERVER, YOU WILL   |
+|  NEED TO REMOVE IT, OVERWRITE IT, OR MANUALLY UPDATE     |
+|  THE MAVEN VERSION TO SKIP PAST THIS FAILED BUILD.       |
+|  USE ${NEXT_VERSION} OR LATER.                           |
+|                                                          |
++----------------------------------------------------------+
+EOF
+    exit 1
+  fi
+
+  pullResult="${pullResult,,}"
+  pullResult="${pullResult// /-}"
+  set -e
+  if [ "${pullResult}" != "already-up-to-date." ]
+  then
+    local mergeMessage
+    mergeMessage=$(git log -1 --format="%s")
+    git commit --amend -m "REBUILD REQUIRED: ${mergeMessage}" -m "${pullResult}"
+  fi
+}
+
 nextRelease() {
   mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DremoveSnapshot=true 1>&2
   local releaseVersion
@@ -255,8 +293,7 @@ releaseBuild() {
   set +x
   commitReleaseVersion "${releaseVersion}"
   commitNextSnapshot
-  # Merge main in case a new commit was made
-  git pull --no-edit --no-ff --no-tags
+  mergeMainBranch
   git push --tags --force
   git push
   createGitHubRelease "${releaseVersion}"
