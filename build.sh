@@ -256,7 +256,7 @@ releaseBuild() {
   commitReleaseVersion "${releaseVersion}"
   commitNextSnapshot
   # Merge main in case a new commit was made
-  git pull --no-edit --ff-only --no-tags
+  git pull --no-edit --no-ff --no-tags
   git push --tags --force
   git push
   createGitHubRelease "${releaseVersion}"
