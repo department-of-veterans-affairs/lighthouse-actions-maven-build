@@ -229,9 +229,9 @@ isJavaVersionSupported() {
 
   local javaMajorVersion=
   javaMajorVersion=$(echo ${JAVA_VERSION} | cut -d '.' -f 1)
-  if [ "${javaMajorVersion}" != "${desiredVersion}" ]
+  if [ "${javaMajorVersion}" != "${desiredVersion%%.*}" ]
   then
-    log "Container java version (${javaMajorVersion}) does not match desired java version (${desiredVersion}). Aborting build..." "ERROR"
+    log "Container java version '${javaMajorVersion}' does not match desired java version '${desiredVersion%%.*}' (${desiredVersion}). Aborting build..." "ERROR"
     return 1
   fi
 
