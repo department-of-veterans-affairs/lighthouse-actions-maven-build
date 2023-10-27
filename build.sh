@@ -232,7 +232,7 @@ isJavaVersionSupported() {
   if [ "${javaMajorVersion}" != "${desiredVersion%%.*}" ]
   then
     log "Container java version '${javaMajorVersion}' does not match desired java version '${desiredVersion%%.*}' (${desiredVersion}). Aborting build..." "ERROR"
-    return 1
+    exit 1
   fi
 
   return 0
