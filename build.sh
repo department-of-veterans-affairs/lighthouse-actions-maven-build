@@ -72,7 +72,9 @@ main() {
 commitNextSnapshot() {
   mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
   local snapshotVersion
-  snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  snapshotVersion=$(mvn ${MVN_ARGS} -N -q org.codehaus.mojo:exec-maven-plugin:exec \
+    -Dexec.executable='echo' \
+    -Dexec.args='${project.version}')
   git diff
   git add $(git status -s | grep "^ M" | cut -c4-)
   local message
@@ -109,7 +111,7 @@ createGitHubRelease() {
   local tagRange
   tagRange=$(git tag \
     | grep -E '[0-9]+\.[0-9]+\.[0-9]' \
-    | sort -rV \
+    | sort --reverse --version-sort \
     | head -2 \
     | paste -sd : \
     | sed 's/:/.../')
@@ -216,10 +218,9 @@ isJavaVersionSupported() {
     log "Found installed java version: ${JAVA_VERSION}"
   fi
 
-  local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
-    ${MVN_ARGS} \
+  local desiredVersion=$(mvn ${MVN_ARGS} -N -q org.codehaus.mojo:exec-maven-plugin:exec \
     -Dexec.executable='echo' \
-    -Dexec.args='${maven.compiler.target}')
+    -Dexec.args='${java.version}')
   if [ -z "${desiredVersion:-}" ]
   then
     log "Cannot determine compiler target version, assuming it's supported." "WARN"
