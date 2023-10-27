@@ -106,10 +106,31 @@ configureSettings() {
 createGitHubRelease() {
   local releaseVersion="${1:-}"
   log "Creating Release ${releaseVersion} in GitHub"
-  # ToDo determine release notes
+  local tagRange
+  tagRange=$(git tag \
+    | grep -E '[0-9]+\.[0-9]+\.[0-9]' \
+    | sort -rV \
+    | head -2 \
+    | paste -sd : \
+    | sed 's/:/.../')
+
+  local commitHistory=$(mktemp)
+  git log --format=format:'COMMIT: %s%n%b' \
+    --invert-grep \
+    --grep='Next snapshot' \
+    --grep='Merge branch' \
+    --grep='REBUILD REQUIRED' \
+    "${tagRange}" \
+  | sed -e 's/^ *\* \+//' \
+  | awk '/COMMIT: Release .* - Jenkins Build/ {$1="";print;next}
+      /COMMIT:/ {$1="";printf "-";print;next}
+      /[a-z]/ {printf "  - ";print}' \
+  | tee ${commitHistory}
+
   gh release create ${releaseVersion} \
     --verify-tag \
-    --title "Release ${releaseVersion}"
+    --title "Release ${releaseVersion}" \
+    --notes-file ${commitHistory}
 }
 
 defaultSettings() {
