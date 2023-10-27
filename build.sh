@@ -122,7 +122,7 @@ createGitHubRelease() {
     --grep='REBUILD REQUIRED' \
     "${tagRange}" \
   | sed -e 's/^ *\* \+//' \
-  | awk '/COMMIT: Release .* - Jenkins Build/ {$1="";print;next}
+  | awk '/COMMIT: Release .*/ {$1="";print;next}
       /COMMIT:/ {$1="";printf "-";print;next}
       /[a-z]/ {printf "  - ";print}' \
   | tee ${commitHistory}
