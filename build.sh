@@ -72,7 +72,9 @@ main() {
 commitNextSnapshot() {
   mvn $MVN_ARGS versions:set -DprocessAllModules=true -DgenerateBackupPoms=false -DnextSnapshot=true
   local snapshotVersion
-  snapshotVersion=$(mvn $MVN_ARGS -N -q org.codehaus.mojo:exec-maven-plugin:exec -Dexec.executable='echo' -Dexec.args='${project.version}')
+  snapshotVersion=$(mvn ${MVN_ARGS} -N -q org.codehaus.mojo:exec-maven-plugin:exec \
+    -Dexec.executable='echo' \
+    -Dexec.args='${project.version}')
   git diff
   git add $(git status -s | grep "^ M" | cut -c4-)
   local message
@@ -106,10 +108,31 @@ configureSettings() {
 createGitHubRelease() {
   local releaseVersion="${1:-}"
   log "Creating Release ${releaseVersion} in GitHub"
-  # ToDo determine release notes
+  local tagRange
+  tagRange=$(git tag \
+    | grep -E '[0-9]+\.[0-9]+\.[0-9]' \
+    | sort --reverse --version-sort \
+    | head -2 \
+    | paste -sd : \
+    | sed 's/:/.../')
+
+  local commitHistory=$(mktemp)
+  git log --format=format:'COMMIT: %s%n%b' \
+    --invert-grep \
+    --grep='Next snapshot' \
+    --grep='Merge branch' \
+    --grep='REBUILD REQUIRED' \
+    "${tagRange}" \
+  | sed -e 's/^ *\* \+//' \
+  | awk '/COMMIT: Release .*/ {$1="";print;next}
+      /COMMIT:/ {$1="";printf "-";print;next}
+      /[a-z]/ {printf "  - ";print}' \
+  | tee ${commitHistory}
+
   gh release create ${releaseVersion} \
     --verify-tag \
-    --title "Release ${releaseVersion}"
+    --title "Release ${releaseVersion}" \
+    --notes-file ${commitHistory}
 }
 
 defaultSettings() {
@@ -195,10 +218,9 @@ isJavaVersionSupported() {
     log "Found installed java version: ${JAVA_VERSION}"
   fi
 
-  local desiredVersion=$(mvn -N -q org.codehaus.mojo:exec-maven-plugin:exec \
-    ${MVN_ARGS} \
+  local desiredVersion=$(mvn ${MVN_ARGS} -N -q org.codehaus.mojo:exec-maven-plugin:exec \
     -Dexec.executable='echo' \
-    -Dexec.args='${maven.compiler.target}')
+    -Dexec.args='${java.version}')
   if [ -z "${desiredVersion:-}" ]
   then
     log "Cannot determine compiler target version, assuming it's supported." "WARN"
@@ -207,10 +229,10 @@ isJavaVersionSupported() {
 
   local javaMajorVersion=
   javaMajorVersion=$(echo ${JAVA_VERSION} | cut -d '.' -f 1)
-  if [ "${javaMajorVersion}" != "${desiredVersion}" ]
+  if [ "${javaMajorVersion}" != "${desiredVersion%%.*}" ]
   then
-    log "Container java version (${javaMajorVersion}) does not match desired java version (${desiredVersion}). Aborting build..." "ERROR"
-    return 1
+    log "Container java version '${javaMajorVersion}' does not match desired java version '${desiredVersion%%.*}' (${desiredVersion}). Aborting build..." "ERROR"
+    exit 1
   fi
 
   return 0

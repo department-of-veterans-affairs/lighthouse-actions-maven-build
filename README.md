@@ -1,5 +1,7 @@
 # lighthouse-actions-maven-build
 
+>[Contributing to this repo](./contributing.md)
+
 GitHub action to build Java projects for the Lighthouse program and tooling to help simplify configuring your repository.
 
 
