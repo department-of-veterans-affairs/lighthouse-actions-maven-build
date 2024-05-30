@@ -353,6 +353,7 @@ setupBuild() {
   MVN_ARGS+=" -Dgithub.username=${GITHUB_USERNAME}"
   MVN_ARGS+=" -Dgithub.token=${GITHUB_TOKEN}"
   MVN_ARGS+=" -Dgit.enforceBranchNames=false"
+  MVN_ARGS+=" -Dmaven.resolver.transport=wagon"
   if ! isJavaVersionSupported; then echo "Skipping build..."; return; fi
   mvn --version
   runInitializeBuild
